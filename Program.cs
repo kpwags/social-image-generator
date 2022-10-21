@@ -73,11 +73,11 @@ internal class Program
 
         using var image = Image.Load("Template.jpg");
 
-        var petrona = new FontCollection();
+        var fontCollection = new FontCollection();
 
-        petrona.AddSystemFonts();
+        fontCollection.Add("worksans.ttf");
 
-        if (petrona.TryGet("Helvetica Neue", out FontFamily family))
+        if (fontCollection.TryGet("Work Sans", out FontFamily family))
         {
             var font = family.CreateFont(60, FontStyle.Bold);
 
@@ -90,7 +90,6 @@ internal class Program
 
             var rect = TextMeasurer.Measure(data.Title, options);
 
-            // image.Mutate(x => x.DrawText(data.Title, font, Color.White, new PointF(40, 80)));
             image.Mutate(x => x.DrawText(options, data.Title, Color.White));
 
             var urlFont = family.CreateFont(24, FontStyle.Regular);
