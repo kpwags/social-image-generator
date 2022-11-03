@@ -94,14 +94,14 @@ internal class Program
 
             var urlFont = family.CreateFont(24, FontStyle.Regular);
 
-            var urlOptions = new TextOptions(font)
+            var urlOptions = new TextOptions(urlFont)
             {
                 Origin = new PointF(40, 80 + rect.Height),
                 WrappingLength = 600,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
-            image.Mutate(x => x.DrawText(data.Url, urlFont, Color.White, new PointF(40, 80 + rect.Height)));
+            image.Mutate(x => x.DrawText(urlOptions, data.Url, Color.White));
         }
 
         using var ms = new MemoryStream();
@@ -109,8 +109,6 @@ internal class Program
         await image.SaveAsync(ms, new JpegEncoder());
 
         var imageData = ms.ToArray();
-
-        var decoder = new JpegDecoder();
 
         await image.SaveAsJpegAsync(BuildFilePath());
     }
