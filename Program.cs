@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SocialImageGenerator.Models;
 using System;
+using System.Linq;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -42,7 +43,7 @@ internal class Program
 
     static PostData GetPostData()
     {
-        Console.Write($"Enter the post's date (defaults to {DateTime.Now.ToString("yyyy-MM-dd")}): ");
+        Console.Write($"Enter the post's date ({DateTime.Now.ToString("yyyy-MM-dd")}): ");
 
         var date = Console.ReadLine();
 
@@ -52,14 +53,16 @@ internal class Program
 
         var postTitle = Console.ReadLine();
 
-        Console.Write($"Enter the post's slug: ");
+        var slug = BuildUrlSlug(postTitle ?? "");
+
+        Console.Write($"Enter the post's slug ({slug}): ");
 
         var postSlug = Console.ReadLine();
 
         return new PostData
         {
             Title = postTitle ?? "",
-            Slug = postSlug ?? "",
+            Slug = postSlug == "" ? slug : postSlug ?? "",
             PostDate = postDate,
         };
     }
@@ -143,5 +146,12 @@ internal class Program
         }
 
         return Path.Join(directory, "social-image.jpg");
+    }
+
+    static string BuildUrlSlug(string title)
+    {
+        var noSpecialChars = new string(title.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || c == '-').ToArray());
+
+        return noSpecialChars.Replace(" ", "-").Replace("---", "-").ToLower();
     }
 }
