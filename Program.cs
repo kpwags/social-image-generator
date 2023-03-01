@@ -14,26 +14,41 @@ namespace SocialImageGenerator;
 
 internal class Program
 {
-    static PostData? data;
+    private static PostData? _data;
+    private static ReadingLogData? _readingLogData;
 
     static async Task Main(string[] args)
     {
-        data = GetPostData();
+        Console.Write("Please enter '1' for blog post or '2' for reading log (1): ");
 
-        if (data is null)
+        var post = Console.ReadLine();
+        var postType = PostType.BlogPost;
+
+        if (post is not null)
         {
-            Console.WriteLine("Unable to generate post data");
-            return;
+            postType = (PostType)int.Parse(post);
         }
 
-        await BuildImage();
+        switch (postType)
+        {
+            case PostType.BlogPost:
+                _data = GetPostData();
+                break;
+            
+            case PostType.ReadingLog:
+                _readingLogData = GetReadingLogData();
+                break;
+            
+            default:
+                throw new Exception("Invalid Post Type");
+        }
+        
+        await BuildImage(postType);
     }
 
     static DateTime GetPostDate(string enteredDate)
     {
-        DateTime postDate;
-
-        if (!DateTime.TryParse(enteredDate, out postDate))
+        if (!DateTime.TryParse(enteredDate, out DateTime postDate))
         {
             postDate = DateTime.Now;
         }
@@ -67,11 +82,33 @@ internal class Program
         };
     }
 
-    static async Task BuildImage()
+    static ReadingLogData GetReadingLogData()
     {
-        if (data is null)
+        Console.Write($"Enter the title: ");
+        
+        var postTitle = Console.ReadLine();
+        
+        Console.Write($"Enter the reading log number: ");
+        
+        var number = Console.ReadLine();
+
+        return new ReadingLogData
+        {
+            Title = postTitle ?? "",
+            ReadingLogNumber = int.Parse(number ?? "0"),
+        };
+    }
+
+    static async Task BuildImage(PostType postType)
+    {
+        if (postType == PostType.BlogPost && _data is null)
         {
             throw new Exception("Post Data is null");
+        }
+        
+        if (postType == PostType.ReadingLog && _readingLogData is null)
+        {
+            throw new Exception("Reading Log Data is null");
         }
 
         using var image = Image.Load("Template.jpg");
@@ -91,9 +128,11 @@ internal class Program
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
-            var rect = TextMeasurer.Measure(data.Title, options);
+            var postTitle = postType == PostType.ReadingLog ? _readingLogData?.Title : _data?.Title;
+            
+            var rect = TextMeasurer.Measure(postTitle ?? "", options);
 
-            image.Mutate(x => x.DrawText(options, data.Title, Color.White));
+            image.Mutate(x => x.DrawText(options, postTitle ?? "", Color.White));
 
             var urlFont = family.CreateFont(24, FontStyle.Regular);
 
@@ -104,48 +143,58 @@ internal class Program
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
-            image.Mutate(x => x.DrawText(urlOptions, data.Url, Color.White));
+            var postUrl = postType == PostType.ReadingLog ? _readingLogData?.Url : _data?.Url;
+            
+            image.Mutate(x => x.DrawText(urlOptions, postUrl ?? "", Color.White));
         }
 
         using var ms = new MemoryStream();
 
         await image.SaveAsync(ms, new JpegEncoder());
 
-        var imageData = ms.ToArray();
-
-        await image.SaveAsJpegAsync(BuildFilePath());
+        await image.SaveAsJpegAsync(BuildFilePath(postType));
     }
 
-    static string BuildFilePath()
+    static string BuildFilePath(PostType postType)
     {
-        if (data is null)
+        if (postType == PostType.BlogPost && _data is null)
         {
             throw new Exception("Post Data is null");
+        }
+        
+        if (postType == PostType.ReadingLog && _readingLogData is null)
+        {
+            throw new Exception("Reading Log Data is null");
         }
 
         string rootDirectory = string.Empty;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            rootDirectory = "/Users/keith/Developer/kpwags.com/public/images/posts";
+            rootDirectory = postType == PostType.ReadingLog ? "/Users/keith/Developer/kpwags.com/public/images/readinglogs" : "/Users/keith/Developer/kpwags.com/public/images/posts";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            rootDirectory = @"C:\Users\keith\Developer\kpwags.com\public\images\posts";
+            rootDirectory = postType == PostType.ReadingLog ? @"C:\Users\keith\Developer\kpwags.com\public\images\readinglogs" : @"C:\Users\keith\Developer\kpwags.com\public\images\posts";
         }
         else
         {
             throw new Exception("Invalid Operating System");
         }
-
-        var directory = Path.Join(rootDirectory, data.Directory);
-
-        if (!Directory.Exists(directory))
+        
+        if (postType == PostType.BlogPost)
         {
-            Directory.CreateDirectory(directory);
-        }
+            var directory = Path.Join(rootDirectory, _data?.Directory);
 
-        return Path.Join(directory, "social-image.jpg");
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+            
+            return Path.Join(directory, "social-image.jpg");
+        }
+        
+        return Path.Join(rootDirectory, $"{_readingLogData?.ReadingLogNumber}.jpg");
     }
 
     static string BuildUrlSlug(string title)
