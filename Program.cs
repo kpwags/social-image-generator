@@ -8,7 +8,9 @@ using System;
 using System.Linq;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace SocialImageGenerator;
 
@@ -16,9 +18,24 @@ internal class Program
 {
     private static PostData? _data;
     private static ReadingLogData? _readingLogData;
+    private static string _destinationDirectory = "";
+    private static DirectorySettings? _directorySettings;
 
-    static async Task Main(string[] args)
+    static async Task Main()
     {
+        IConfiguration config = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .AddEnvironmentVariables()
+            .Build();
+        
+        _directorySettings = config.GetRequiredSection("Directories").Get<DirectorySettings>();
+
+        if (_directorySettings is null)
+        {
+            Console.WriteLine("Unable to read settings");
+            return;
+        }
+        
         Console.Write("Please enter '1' for blog post or '2' for reading log (1): ");
 
         var post = Console.ReadLine();
@@ -27,6 +44,14 @@ internal class Program
         if (!string.IsNullOrWhiteSpace(post))
         {
             postType = (PostType)int.Parse(post);
+        }
+
+        _destinationDirectory = GetDestinationDirectory(postType);
+
+        if (string.IsNullOrWhiteSpace(_destinationDirectory))
+        {
+            Console.WriteLine("Invalid destination directory");
+            return;
         }
 
         switch (postType)
@@ -44,6 +69,26 @@ internal class Program
         }
         
         await BuildImage(postType);
+    }
+
+    static string GetDestinationDirectory(PostType postType)
+    {
+        if (_directorySettings is null)
+        {
+            throw new Exception("Unable to read settings");
+        }
+        
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return $"{_directorySettings.Mac}/{(postType == PostType.ReadingLog ? _directorySettings.ReadingLogs : _directorySettings.Posts)}";
+        }
+        
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return $"{_directorySettings.Windows}/{(postType == PostType.ReadingLog ? _directorySettings.ReadingLogs : _directorySettings.Posts)}";
+        }
+        
+        throw new Exception("Invalid Operating System");
     }
 
     static DateTime GetPostDate(string enteredDate)
@@ -172,24 +217,9 @@ internal class Program
             throw new Exception("Reading Log Data is null");
         }
 
-        string rootDirectory = string.Empty;
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            rootDirectory = postType == PostType.ReadingLog ? "/Users/keith/Developer/kpwags.com/public/images/readinglogs" : "/Users/keith/Developer/kpwags.com/public/images/posts";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            rootDirectory = postType == PostType.ReadingLog ? @"C:\Users\keith\Developer\kpwags.com\public\images\readinglogs" : @"C:\Users\keith\Developer\kpwags.com\public\images\posts";
-        }
-        else
-        {
-            throw new Exception("Invalid Operating System");
-        }
-        
         if (postType == PostType.BlogPost)
         {
-            var directory = Path.Join(rootDirectory, _data?.Directory);
+            var directory = Path.Join(_destinationDirectory, _data?.Directory);
 
             if (!Directory.Exists(directory))
             {
@@ -199,7 +229,7 @@ internal class Program
             return Path.Join(directory, "social-image.jpg");
         }
         
-        return Path.Join(rootDirectory, $"{_readingLogData?.ReadingLogNumber}.jpg");
+        return Path.Join(_destinationDirectory, $"{_readingLogData?.ReadingLogNumber}.jpg");
     }
 
     static string BuildUrlSlug(string title)
