@@ -24,7 +24,7 @@ internal class Program
         var post = Console.ReadLine();
         var postType = PostType.BlogPost;
 
-        if (post is not null)
+        if (!string.IsNullOrWhiteSpace(post))
         {
             postType = (PostType)int.Parse(post);
         }
@@ -58,7 +58,7 @@ internal class Program
 
     static PostData GetPostData()
     {
-        Console.Write($"Enter the post's date ({DateTime.Now.ToString("yyyy-MM-dd")}): ");
+        Console.Write($"Enter the post's date ({DateTime.Now:yyyy-MM-dd}): ");
 
         var date = Console.ReadLine();
 
@@ -84,9 +84,14 @@ internal class Program
 
     static ReadingLogData GetReadingLogData()
     {
-        Console.Write($"Enter the title: ");
+        Console.Write($"Enter the reading log date ({DateTime.Now:MMMM d}): ");
         
-        var postTitle = Console.ReadLine();
+        var postDate = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(postDate))
+        {
+            postDate = DateTime.Now.ToString("MMMM d");
+        }
         
         Console.Write($"Enter the reading log number: ");
         
@@ -94,7 +99,7 @@ internal class Program
 
         return new ReadingLogData
         {
-            Title = postTitle ?? "",
+            Title = $"Reading Log - {postDate} (#{number})",
             ReadingLogNumber = int.Parse(number ?? "0"),
         };
     }
