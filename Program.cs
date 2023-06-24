@@ -8,7 +8,6 @@ using System;
 using System.Linq;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
@@ -165,16 +164,16 @@ internal class Program
 
         var fontCollection = new FontCollection();
 
-        fontCollection.Add("worksans.ttf");
+        fontCollection.Add("SourceCodePro.ttf");
 
-        if (fontCollection.TryGet("Work Sans", out FontFamily family))
+        if (fontCollection.TryGet("Source Code Pro", out FontFamily family))
         {
             var font = family.CreateFont(60, FontStyle.Bold);
 
             var options = new TextOptions(font)
             {
                 Origin = new PointF(40, 60),
-                WrappingLength = 600,
+                WrappingLength = 1120,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
@@ -184,12 +183,12 @@ internal class Program
 
             image.Mutate(x => x.DrawText(options, postTitle ?? "", Color.White));
 
-            var urlFont = family.CreateFont(24, FontStyle.Regular);
+            var urlFont = family.CreateFont(30, FontStyle.Regular);
 
             var urlOptions = new TextOptions(urlFont)
             {
                 Origin = new PointF(40, 80 + rect.Height),
-                WrappingLength = 600,
+                WrappingLength = 1120,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
