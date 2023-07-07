@@ -128,13 +128,13 @@ internal class Program
 
     static ReadingLogData GetReadingLogData()
     {
-        Console.Write($"Enter the reading log date ({DateTime.Now:MMMM d}): ");
+        Console.Write($"Enter the reading log date ({DateTime.Now:MMMM d, yyyy}): ");
         
         var postDate = Console.ReadLine();
 
         if (string.IsNullOrWhiteSpace(postDate))
         {
-            postDate = DateTime.Now.ToString("MMMM d");
+            postDate = DateTime.Now.ToString("MMMM d, yyyy");
         }
         
         Console.Write($"Enter the reading log number: ");
