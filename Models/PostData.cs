@@ -12,5 +12,5 @@ public class PostData
 
     public string Url => $"kpwags.com/posts/{PostDate.ToString("yyyy")}/{PostDate.ToString("MM")}/{PostDate.ToString("dd")}/{Slug}";
 
-    public string Directory => $"{PostDate.ToString("yyyy")}-{PostDate.ToString("MM")}-{PostDate.ToString("dd")}-{Slug}";
+    public string Filename => $"{PostDate.ToString("yyyy")}-{PostDate.ToString("MM")}-{PostDate.ToString("dd")}-{Slug}.jpg";
 }
