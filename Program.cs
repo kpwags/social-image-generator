@@ -218,14 +218,12 @@ internal class Program
 
         if (postType == PostType.BlogPost)
         {
-            var directory = Path.Join(_destinationDirectory, _data?.Directory);
-
-            if (!Directory.Exists(directory))
+            if (!Directory.Exists(_destinationDirectory))
             {
-                Directory.CreateDirectory(directory);
+                Directory.CreateDirectory(_destinationDirectory);
             }
             
-            return Path.Join(directory, "social-image.jpg");
+            return Path.Join(_destinationDirectory, _data?.Filename);
         }
         
         return Path.Join(_destinationDirectory, $"{_readingLogData?.ReadingLogNumber}.jpg");
