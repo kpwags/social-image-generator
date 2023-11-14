@@ -143,7 +143,7 @@ internal class Program
 
         return new ReadingLogData
         {
-            Title = $"Reading Log - {postDate} (#{number})",
+            Title = $"Reading Log -{Environment.NewLine}{postDate} (#{number})",
             ReadingLogNumber = int.Parse(number ?? "0"),
         };
     }
