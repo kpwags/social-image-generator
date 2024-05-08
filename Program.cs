@@ -35,7 +35,7 @@ internal class Program
             return;
         }
         
-        Console.Write("Please enter '1' for blog post or '2' for reading log (1): ");
+        Console.Write("Please enter '1' for blog post, '2' for reading log, or '3' for note (1): ");
 
         var post = Console.ReadLine();
         var postType = PostType.BlogPost;
@@ -56,6 +56,7 @@ internal class Program
         switch (postType)
         {
             case PostType.BlogPost:
+            case PostType.Note:
                 _data = GetPostData();
                 break;
             
@@ -76,15 +77,27 @@ internal class Program
         {
             throw new Exception("Unable to read settings");
         }
+
+        var folder = _directorySettings.Posts;
+        
+        if (postType == PostType.ReadingLog)
+        {
+            folder = _directorySettings.ReadingLogs;
+        }
+
+        if (postType == PostType.Note)
+        {
+            folder = _directorySettings.Notes;
+        }
         
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            return $"{_directorySettings.Mac}/{(postType == PostType.ReadingLog ? _directorySettings.ReadingLogs : _directorySettings.Posts)}";
+            return $"{_directorySettings.Mac}/{folder}";
         }
         
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return $"{_directorySettings.Windows}/{(postType == PostType.ReadingLog ? _directorySettings.ReadingLogs : _directorySettings.Posts)}";
+            return $"{_directorySettings.Windows}/{folder}";
         }
         
         throw new Exception("Invalid Operating System");
@@ -141,16 +154,18 @@ internal class Program
         
         var number = Console.ReadLine();
 
+        var postTitle = DateTime.Parse(postDate).ToString("MMMM d, yyyy");
+        
         return new ReadingLogData
         {
-            Title = $"Reading Log -{Environment.NewLine}{postDate} (#{number})",
+            Title = $"{postTitle} (#{number})",
             ReadingLogNumber = int.Parse(number ?? "0"),
         };
     }
 
     static async Task BuildImage(PostType postType)
     {
-        if (postType == PostType.BlogPost && _data is null)
+        if ((postType == PostType.BlogPost || postType == PostType.Note) && _data is null)
         {
             throw new Exception("Post Data is null");
         }
@@ -168,33 +183,63 @@ internal class Program
 
         if (fontCollection.TryGet("Source Code Pro", out FontFamily family))
         {
+            var postTitle = _data?.Title ?? _readingLogData?.Title ?? "";
+            
             var font = family.CreateFont(60, FontStyle.Bold);
+            var leadingTitleFont = family.CreateFont(36, FontStyle.Bold);
+            var dateFont = family.CreateFont(32, FontStyle.Regular);
 
-            var options = new TextOptions(font)
+            var leadingTitleOptions = new RichTextOptions(leadingTitleFont)
             {
                 Origin = new PointF(40, 60),
                 WrappingLength = 1120,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
-            var postTitle = postType == PostType.ReadingLog ? _readingLogData?.Title : _data?.Title;
+            bool hasLeadingTitle = postType == PostType.ReadingLog || postTitle.StartsWith("What I Learned:");
+
+            FontRectangle? rect = null;
             
-            var rect = TextMeasurer.Measure(postTitle ?? "", options);
-
-            image.Mutate(x => x.DrawText(options, postTitle ?? "", Color.White));
-
-            var urlFont = family.CreateFont(30, FontStyle.Regular);
-
-            var urlOptions = new TextOptions(urlFont)
+            PatternBrush brush = Brushes.Horizontal(Color.White, Color.White);
+            
+            if (hasLeadingTitle)
             {
-                Origin = new PointF(40, 80 + rect.Height),
+                var leadingText = "Reading Log:";
+                if (_data is not null && _data.Title.StartsWith("What I Learned"))
+                {
+                    postTitle = postTitle.Replace("What I Learned: ", "");
+                    leadingText = "What I Learned:";
+                }
+                
+                rect = TextMeasurer.MeasureSize(leadingText, leadingTitleOptions);
+
+                image.Mutate(x => x.DrawText(new DrawingOptions(), leadingTitleOptions, leadingText, brush, null));
+            }
+
+            var leadingTextHeight = rect?.Height ?? 0;
+
+            var titleOptions = new RichTextOptions(font)
+            {
+                Origin = new PointF(40, 80 + leadingTextHeight),
                 WrappingLength = 1120,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
-            var postUrl = postType == PostType.ReadingLog ? _readingLogData?.Url : _data?.Url;
+            rect = TextMeasurer.MeasureSize(postTitle, titleOptions);
             
-            image.Mutate(x => x.DrawText(urlOptions, postUrl ?? "", Color.White));
+            image.Mutate(x => x.DrawText(new DrawingOptions(), titleOptions, postTitle, brush, null));
+
+            if (postType != PostType.ReadingLog)
+            {
+                var dateOptions = new RichTextOptions(dateFont)
+                {
+                    Origin = new PointF(40, 150 + rect.Value.Height),
+                    WrappingLength = 1120,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                };
+            
+                image.Mutate(x => x.DrawText(new DrawingOptions(), dateOptions, (_data?.PostDate ?? DateTime.Now).ToString("MMMM d, yyyy"), brush, null));
+            }
         }
 
         using var ms = new MemoryStream();
@@ -206,7 +251,7 @@ internal class Program
 
     static string BuildFilePath(PostType postType)
     {
-        if (postType == PostType.BlogPost && _data is null)
+        if ((postType == PostType.BlogPost || postType == PostType.Note) && _data is null)
         {
             throw new Exception("Post Data is null");
         }
@@ -216,7 +261,7 @@ internal class Program
             throw new Exception("Reading Log Data is null");
         }
 
-        if (postType == PostType.BlogPost)
+        if (postType == PostType.BlogPost || postType == PostType.Note)
         {
             if (!Directory.Exists(_destinationDirectory))
             {

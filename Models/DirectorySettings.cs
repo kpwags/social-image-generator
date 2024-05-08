@@ -9,4 +9,6 @@ public class DirectorySettings
     public string Posts { get; set; } = string.Empty;
     
     public string ReadingLogs { get; set; } = string.Empty;
+    
+    public string Notes { get; set; } = string.Empty;
 }
